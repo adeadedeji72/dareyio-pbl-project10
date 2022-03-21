@@ -54,13 +54,13 @@ sudo vi /etc/nginx/nginx.conf
 ~~~
 
 #insert following configuration into *http* section
-~~~~
+~~~
  upstream myproject {
     server Web1 weight=5;
     server Web2 weight=5;
   }
 
-server {
+    server {
     listen 80;
     server_name www.domain.com;
     location / {
@@ -69,7 +69,6 @@ server {
   }
   
 ~~~
-
 #comment out this line
 ~~~
 #       include /etc/nginx/sites-enabled/*;
@@ -82,3 +81,68 @@ sudo systemctl status nginx
 sudo systemctl enable nginx
 ~~~
 
+### **REGISTER A NEW DOMAIN NAME AND CONFIGURE SECURED CONNECTION USING SSL/TLS CERTIFICATES** ###
+
+1. Register a new domain name with any registrar of your choice in any domain zone
+(e.g. .com, .net, .org, .edu, .info, .xyz or any other)
+
+2. Assign an Elastic IP to your Nginx LB server and associate your domain name with this Elastic IP
+
+![](elastic-ip.jpg)
+
+![](e-ip-attached.jpg)
+
+3. Update A record in your registrar to point to Nginx LB using Elastic IP address
+
+4. Check that your Web Servers can be reached from your browser using new domain name using HTTP protocol – http://devops.princessoo.com
+
+![](domain-name-works.jpg)
+
+5. Configure Nginx to recognize your new domain name
+Update your nginx.conf with server_name www.<your-domain-name.com> instead of server_name www.domain.com
+
+6. Install certbot and request for an SSL/TLS certificate
+Make sure snapd service is active and running
+~~~
+sudo systemctl status snapd
+~~~
+Install certbot
+~~~
+sudo snap install --classic certbot
+~~~
+
+Request your certificate (just follow the certbot instructions – you will need to choose which domain you want your certificate to be issued for, domain name will be looked up from nginx.conf file so make sure you have updated it on step 5)
+
+~~~
+sudo ln -s /snap/bin/certbot /usr/bin/certbot
+sudo certbot --nginx
+~~~
+
+Test secured access to your Web Solution by trying to reach 
+~~~
+https://domain-name.com
+~~~
+
+![image](ssl-works1.jpg)
+
+7. Set up periodical renewal of your SSL/TLS certificate
+By default, LetsEncrypt certificate is valid for 90 days, so it is recommended to renew it at least every 60 days or more frequently.
+
+You can test renewal command in dry-run mode
+~~~
+sudo certbot renew --dry-run
+~~~
+Best pracice is to have a scheduled job that to run renew command periodically. Let us configure a cronjob to run the command twice a day.
+
+To do so, lets edit the crontab file with the following command:
+~~~
+crontab -e
+~~~
+Selecy editor of choice
+Add following line:
+~~~
+* */12 * * *   root /usr/bin/certbot renew > /dev/null 2>&1
+~~~
+You can always change the interval of this cronjob if twice a day is too often by adjusting schedule expression.
+
+**Success!**
