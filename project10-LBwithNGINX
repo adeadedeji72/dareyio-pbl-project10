@@ -26,7 +26,6 @@ Your target architecture will look like this:
 
 ![](nginx-lb.png)
 
-
 ## **CONFIGURE NGINX AS A LOAD BALANCER** ##
 
 1. Create an EC2 VM based on Ubuntu Server 20.04 LTS and name it Nginx LB (do not forget to open TCP port 80 for HTTP connections, also open TCP port 443 – 
@@ -34,11 +33,52 @@ this port is used for secured HTTPS connections)
 
 ![](open-80-443.jpg)
 
-1. Update /etc/hosts file for local DNS with Web Servers’ names (e.g. Web1 and Web2) and their local IP addresses
+2. Update /etc/hosts file for local DNS with Web Servers’ names (e.g. Web1 and Web2) and their local IP addresses
 
 ![](hosts-names.jpg)
 
 
-1. Install and configure Nginx as a load balancer to point traffic to the resolvable DNS names of the webservers
+3. Install and configure Nginx as a load balancer to point traffic to the resolvable DNS names of the webservers
 
 Update the instance and Install Nginx
+~~~
+sudo apt update -y && sudo apt upgrade -y
+sodo apt install nginx
+~~~
+
+Configure Nginx LB using Web Servers’ names defined in /etc/hosts
+
+Open the default nginx configuration file
+~~~
+sudo vi /etc/nginx/nginx.conf
+~~~
+
+#insert following configuration into *http* section
+~~~~
+ upstream myproject {
+    server Web1 weight=5;
+    server Web2 weight=5;
+  }
+
+server {
+    listen 80;
+    server_name www.domain.com;
+    location / {
+      proxy_pass http://myproject;
+    }
+  }
+  
+~~~
+
+#comment out this line
+~~~
+#       include /etc/nginx/sites-enabled/*;
+~~~
+
+Restart Nginx, make sure the service is up and running and the enable the service to run when the server reboots
+~~~
+sudo systemctl restart nginx
+sudo systemctl status nginx
+sudo systemctl enable nginx
+~~~
+
